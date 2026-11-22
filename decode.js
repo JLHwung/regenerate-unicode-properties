@@ -32,9 +32,10 @@ const numberReader = function(encoded) {
 		let shift = 0;
 		let digit;
 		do {
-			// Past the end of `encoded`, this is `DIGITS[NaN]`.
+			// Past the end of `encoded`, this is `DIGITS[NaN]`. Numbers below 2^30
+			// have at most 6 digits.
 			digit = DIGITS[encoded.charCodeAt(index++)];
-			if (digit === undefined) {
+			if (digit === undefined || shift > 25) {
 				invalid();
 			}
 			number += (digit & 31) << shift;
@@ -55,6 +56,9 @@ const characters = function(encoded) {
 	while ((distance = read(true)) >= 0) {
 		const start = boundary + distance + 1;
 		boundary = start + read() + 1;
+		if (boundary > 0x110000) {
+			invalid();
+		}
 		set.addRange(start, boundary - 1);
 	}
 	return set;

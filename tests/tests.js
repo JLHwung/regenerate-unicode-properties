@@ -29,13 +29,17 @@ test('regenerate-unicode-properties', t => {
 		require('../Property_of_Strings/RGI_Emoji.js').strings.includes('#\uFE0F\u20E3')
 	);
 	const decode = require('../decode.js');
+	t.assert.deepStrictEqual(decode.characters('///hBA').data, [0x10FFFF, 0x110000]);
 	for (const invalid of [
 		() => decode.characters('A!B'), // Not a base64 digit.
 		() => decode.characters('g'), // Ends in the middle of a number.
+		() => decode.characters('ggggggCA'), // A number of more than 6 digits.
 		() => decode.characters('A'), // Ends in the middle of a range.
-		() => decode.strings('C'), // Ends in the middle of a string.
+		() => decode.characters('gggiBA'), // Starts at U+110000.
+		() => decode.characters('///hBB'), // Ends at U+110000.
+		() => decode.strings('ACC'), // Ends in the middle of a string.
 		() => decode.strings('CAB'), // Longer prefix than the previous string.
-		() => decode.strings('AB/'), // Code point above U+10FFFF.
+		() => decode.strings('ABgggkC'), // Code point U+110000.
 	]) {
 		t.assert.throws(invalid, /Invalid regenerate-unicode-properties data/);
 	}
