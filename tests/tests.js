@@ -28,6 +28,17 @@ test('regenerate-unicode-properties', t => {
 	t.assert.ok(
 		require('../Property_of_Strings/RGI_Emoji.js').strings.includes('#\uFE0F\u20E3')
 	);
+	const decode = require('../decode.js');
+	for (const invalid of [
+		() => decode.characters('A!B'), // Not a base64 digit.
+		() => decode.characters('g'), // Ends in the middle of a number.
+		() => decode.characters('A'), // Ends in the middle of a range.
+		() => decode.strings('C'), // Ends in the middle of a string.
+		() => decode.strings('CAB'), // Longer prefix than the previous string.
+		() => decode.strings('AB/'), // Code point above U+10FFFF.
+	]) {
+		t.assert.throws(invalid, /Invalid regenerate-unicode-properties data/);
+	}
 	t.assert.throws(
 		() => require('../Invalid_Property/X.js')
 	);

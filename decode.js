@@ -15,19 +15,28 @@ for (let index = 0; index < ALPHABET.length; index++) {
 	DIGITS[ALPHABET.charCodeAt(index)] = index;
 }
 
+const invalid = function() {
+	throw new Error('Invalid regenerate-unicode-properties data.');
+};
+
 // Returns a function that returns the next number of `encoded` each time it is
-// called, and `-1` once all numbers have been read.
+// called. Once all numbers have been read, it returns `-1` if `canEnd` is true
+// (i.e. at the start of a range or a string), and throws otherwise.
 const numberReader = function(encoded) {
 	let index = 0;
-	return function() {
+	return function(canEnd) {
 		if (index >= encoded.length) {
-			return -1;
+			return canEnd ? -1 : invalid();
 		}
 		let number = 0;
 		let shift = 0;
 		let digit;
 		do {
+			// Past the end of `encoded`, this is `DIGITS[NaN]`.
 			digit = DIGITS[encoded.charCodeAt(index++)];
+			if (digit === undefined) {
+				invalid();
+			}
 			number += (digit & 31) << shift;
 			shift += 5;
 		} while (digit & 32);
@@ -43,7 +52,7 @@ const characters = function(encoded) {
 	const set = regenerate();
 	let boundary = -1;
 	let distance;
-	while ((distance = read()) >= 0) {
+	while ((distance = read(true)) >= 0) {
 		const start = boundary + distance + 1;
 		boundary = start + read() + 1;
 		set.addRange(start, boundary - 1);
@@ -78,7 +87,10 @@ const strings = function(encoded) {
 	let previous = '';
 	let previousLength = 0;
 	let prefixLength;
-	while ((prefixLength = read()) >= 0) {
+	while ((prefixLength = read(true)) >= 0) {
+		if (prefixLength > previousLength) {
+			invalid();
+		}
 		const length = prefixLength + read();
 		let string = previous.slice(0, offsets[prefixLength]);
 		for (let position = prefixLength; position < length; position++) {
@@ -86,6 +98,9 @@ const strings = function(encoded) {
 			const codePoint =
 				(position < previousLength ? codePoints[position] : 0) +
 				(difference & 1 ? -(difference + 1) / 2 : difference / 2);
+			if (codePoint < 0 || codePoint > 0x10FFFF) {
+				invalid();
+			}
 			codePoints[position] = codePoint;
 			string += fromCodePoint(codePoint);
 			offsets[position + 1] = string.length;
