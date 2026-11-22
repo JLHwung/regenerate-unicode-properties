@@ -25,7 +25,11 @@ const ALPHABET =
 const encodeNumbers = function(numbers) {
 	let output = '';
 	for (let number of numbers) {
-		assert.ok(Number.isSafeInteger(number) && number >= 0);
+		// The decoder uses 32-bit integer math. See `decode.js`.
+		assert.ok(
+			Number.isInteger(number) && number >= 0 && number < 2 ** 30,
+			`Cannot encode ${ number }: numbers must be integers in [0, 2^30).`
+		);
 		while (number >= 32) {
 			output += ALPHABET[32 + number % 32];
 			number = Math.floor(number / 32);

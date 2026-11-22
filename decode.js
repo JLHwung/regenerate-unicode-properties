@@ -7,6 +7,7 @@ const regenerate = require('regenerate');
 
 // Numbers are stored as base64 digits, least significant first. Each digit
 // holds 5 bits of the number; digits `>= 32` mean that more digits follow.
+// Numbers are below 2^30, so that they fit in 32-bit integer math.
 const ALPHABET =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const DIGITS = [];
