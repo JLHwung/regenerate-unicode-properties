@@ -1,3 +1,2 @@
-const set = require('regenerate')();
-set.addRange(0x11100, 0x11134).addRange(0x11136, 0x11147);
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('gokC0BAR');

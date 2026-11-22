@@ -1,5 +1,6 @@
 'use strict';
 
+const assert = require('node:assert');
 const fs = require('node:fs');
 const jsesc = require('jsesc');
 const regenerate = require('regenerate');
@@ -15,52 +16,65 @@ const emptyDirSync = function (directory) {
 	});
 };
 
-const codePointToString = function(codePoint) {
-	return '0x' + codePoint.toString(16).toUpperCase();
-};
+const decode = require('./decode.js');
 
-// Regenerate plugin that turns a set into some JavaScript source code that
-// generates that set.
-regenerate.prototype.toCode = function() {
-	const data = this.data;
-	// Iterate over the data per `(start, end)` pair.
-	let index = 0;
-	let start;
-	let end;
-	const length = data.length;
-	const loneCodePoints = [];
-	const ranges = [];
-	while (index < length) {
-		start = data[index];
-		end = data[index + 1] - 1; // Note: the `- 1` makes `end` inclusive.
-		if (start == end) {
-			loneCodePoints.push(codePointToString(start));
-		} else {
-			ranges.push(
-				'addRange(' + codePointToString(start) +
-				', ' + codePointToString(end) + ')'
-			);
+// Encoder for the compact data format. See `decode.js` for the decoder.
+const ALPHABET =
+	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+const encodeNumbers = function(numbers) {
+	let output = '';
+	for (let number of numbers) {
+		assert.ok(Number.isSafeInteger(number) && number >= 0);
+		while (number >= 32) {
+			output += ALPHABET[32 + number % 32];
+			number = Math.floor(number / 32);
 		}
-		index += 2;
-	}
-	let output = 'const set = require(\'regenerate\')(' + loneCodePoints.join(', ') + ');\n';
-	if (ranges.length > 0) {
-		let i = 0;
-		output += 'set';
-		// Avoid deeply-nested ASTs.
-		// https://github.com/babel/babel/issues/8278
-		const MAX_CHAINED_CALLS = 50;
-		for (const range of ranges) {
-			if (i++ == MAX_CHAINED_CALLS) {
-				i = 0;
-				output += '.' + range + ';\nset';
-			} else {
-				output += '.' + range;
-			}
-		}
-		output += ';';
+		output += ALPHABET[number];
 	}
 	return output;
+};
+
+const encodeCharacters = function(set) {
+	const numbers = [];
+	let boundary = -1;
+	for (const next of set.data) {
+		numbers.push(next - boundary - 1);
+		boundary = next;
+	}
+	const encoded = encodeNumbers(numbers);
+	assert.deepStrictEqual(decode.characters(encoded).data, set.data);
+	return encoded;
+};
+
+const encodeStrings = function(strings) {
+	const numbers = [];
+	let previous = [];
+	for (const string of strings) {
+		const codePoints = Array.from(string, (symbol) => symbol.codePointAt(0));
+		let prefixLength = 0;
+		while (
+			prefixLength < codePoints.length &&
+			codePoints[prefixLength] === previous[prefixLength]
+		) {
+			prefixLength++;
+		}
+		numbers.push(prefixLength, codePoints.length - prefixLength);
+		for (let position = prefixLength; position < codePoints.length; position++) {
+			const difference = codePoints[position] -
+				(position < previous.length ? previous[position] : 0);
+			numbers.push(difference < 0 ? -difference * 2 - 1 : difference * 2);
+		}
+		previous = codePoints;
+	}
+	const encoded = encodeNumbers(numbers);
+	assert.deepStrictEqual(decode.strings(encoded), strings);
+	return encoded;
+};
+
+const setToCode = function(set) {
+	return `const decode = require('../decode.js');\n` +
+		`exports.characters = decode.characters('${ encodeCharacters(set) }');\n`;
 };
 
 const INDEX = new Map();
@@ -88,7 +102,7 @@ for (const property of nonBinaryProperties) {
 			`@unicode/unicode-${ UNICODE_VERSION }/${ property }/${ value }/code-points.mjs`
 		);
 		const set = regenerate(codePoints);
-		const output = `${ set.toCode() }\nexports.characters = set;\n`;
+		const output = setToCode(set);
 		fs.writeFileSync(fileName, output);
 	}
 	INDEX.set(property, values.sort());
@@ -113,7 +127,7 @@ for (const property of binaryProperties) {
 		`@unicode/unicode-${ UNICODE_VERSION }/Binary_Property/${ property }/code-points.mjs`
 	);
 	const set = regenerate(codePoints);
-	const output = `${ set.toCode() }\nexports.characters = set;\n`;
+	const output = setToCode(set);
 	fs.writeFileSync(fileName, output);
 }
 
@@ -151,7 +165,8 @@ for (const property of propertiesOfStrings) {
 		}
 	}
 	const set = regenerate(codePoints);
-	const output = `${ set.toCode() }\nexports.characters = set;\nexports.strings = ${ jsesc(strings, { es6: true }) };\n`;
+	const output = setToCode(set) +
+		`exports.strings = decode.strings('${ encodeStrings(strings) }');\n`;
 	fs.writeFileSync(fileName, output);
 }
 INDEX.set('Property_of_Strings', propertiesOfStrings);

@@ -1,3 +1,2 @@
-const set = require('regenerate')();
-set.addRange(0x10980, 0x1099F);
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('gsiCf');

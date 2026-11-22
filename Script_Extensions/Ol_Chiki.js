@@ -1,3 +1,2 @@
-const set = require('regenerate')();
-set.addRange(0x1C50, 0x1C7F);
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('wiHvB');

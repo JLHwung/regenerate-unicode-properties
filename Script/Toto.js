@@ -1,3 +1,2 @@
-const set = require('regenerate')();
-set.addRange(0x1E290, 0x1E2AE);
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('w04De');

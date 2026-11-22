@@ -1,3 +1,2 @@
-const set = require('regenerate')(0x308);
-set.addRange(0x531, 0x556).addRange(0x558, 0x58F).addRange(0xFB13, 0xFB17);
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('oYAnRlBA3Bis9BE');

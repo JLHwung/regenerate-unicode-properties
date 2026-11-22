@@ -1,4 +1,3 @@
-const set = require('regenerate')();
-
-exports.characters = set;
-exports.strings = ['\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}','\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}','\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}'];
+const decode = require('../decode.js');
+exports.characters = decode.characters('');
+exports.strings = decode.strings('AHo/5Humg4Bkmg4Bqmg4B8mg4Bumg4B+ng4BDEcVaADEISBA');

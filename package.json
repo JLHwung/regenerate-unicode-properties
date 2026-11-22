@@ -9,6 +9,7 @@
   },
   "files": [
     "LICENSE-MIT.txt",
+    "decode.js",
     "index.js",
     "unicode-version.js",
     "Binary_Property",

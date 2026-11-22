@@ -1,3 +1,2 @@
-const set = require('regenerate')(0x2028);
-
-exports.characters = set;
+const decode = require('../decode.js');
+exports.characters = decode.characters('ohIA');
